@@ -298,6 +298,33 @@ class MenuBar extends React.Component {
             }
         };
     }
+    handleSaveToGoogleDrive (downloadProjectCallback) {
+        return () => {
+            this.props.onRequestCloseFile();
+            downloadProjectCallback((blob) => {
+                const token = window.gapi && window.gapi.auth2 ? 
+                    window.gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token : '';
+                
+                const metadata = {
+                    name: `${this.props.projectTitle || 'Scratch Project'}.sb3`,
+                    mimeType: 'application/x-scratch-project',
+                    parents: ['root']
+                };
+
+                const form = new FormData();
+                form.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
+                form.append('file', blob);
+
+                fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                    method: 'POST',
+                    headers: new Headers({'Authorization': `Bearer ${token}`}),
+                    body: form
+                })
+                .then(res => res.ok ? alert('Saved successfully to Google Drive!') : alert('Error saving to Drive.'))
+                .catch(err => console.error(err));
+            });
+        };
+    }
     restoreOptionMessage (deletedItem) {
         switch (deletedItem) {
         case 'Sprite':
@@ -506,16 +533,28 @@ class MenuBar extends React.Component {
                                             {this.props.intl.formatMessage(sharedMessages.loadFromComputerTitle)}
                                         </MenuItem>
                                         <SB3Downloader>{(className, downloadProjectCallback) => (
-                                            <MenuItem
-                                                className={className}
-                                                onClick={this.getSaveToComputerHandler(downloadProjectCallback)}
-                                            >
-                                                <FormattedMessage
-                                                    defaultMessage="Save to your computer"
-                                                    description="Menu bar item for downloading a project to your computer" // eslint-disable-line max-len
-                                                    id="gui.menuBar.downloadToComputer"
+                                            <React.Fragment>
+                                                <MenuItem
+                                                    className={className}
+                                                    onClick={this.getSaveToComputerHandler(downloadProjectCallback)}
+                                                >
+                                                    <FormattedMessage
+                                                        defaultMessage="Save to your computer"
+                                                        description="Menu bar item for downloading a project to your computer"
+                                                        id="gui.menuBar.downloadToComputer"
                                                 />
-                                            </MenuItem>
+                                                </MenuItem>
+                                                <MenuItem
+                                                    className={className}
+                                                    onClick={this.handleSaveToGoogleDrive(downloadProjectCallback)}
+                                                >
+                                                    <FormattedMessage
+                                                        defaultMessage="Save to Google Drive"
+                                                        description="Menu bar item for saving project directly to Google Drive"
+                                                        id="gui.menuBar.saveToDrive"
+                                                    />
+                                                </MenuItem>
+                                            </React.Fragment>
                                         )}</SB3Downloader>
                                     </MenuSection>
                                 </MenuBarMenu>
