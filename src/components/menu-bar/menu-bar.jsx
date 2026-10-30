@@ -305,20 +305,26 @@ class MenuBar extends React.Component {
             this.props.onRequestCloseFile();
 
             let token = '';
-                if (window.gapi && window.gapi.auth2 && window.gapi.auth2.getAuthInstance()) {
-                    const authInstance = window.gapi.auth2.getAuthInstance();
-                    if (authInstance.isSignedIn.get()) {
-                        token = authInstance.currentUser.get().getAuthResponse().access_token;
-                    } else {
-                        authInstance.signIn().then(() => this.handleLoadFromGoogleDrive()());
-                        return;
-                    }
-                }
+            const googleAuth = (window.gapi && window.gapi.auth2) ? window.gapi.auth2.getAuthInstance() : null;
 
-        if (!token) {
-            alert('Please sign in to Google to access Drive.');
-            return;
-        }
+            if (googleAuth) {
+                if (googleAuth.isSignedIn.get()) {
+                    token = googleAuth.currentUser.get().getAuthResponse().access_token;
+                } else {
+                    googleAuth.signIn().then(() => {
+                        this.handleLoadFromGoogleDrive()();
+                    }).catch(err => {
+                        console.error('Sign-in error:', err);
+                        alert('Google Sign-In was cancelled or failed.');
+                    });
+                    return;
+                }
+            } else {
+                alert('Google API is initializing. Please try again in a moment.');
+                return;
+            }
+
+        if (!token) return;
 
             // Load Google Drive Picker
             window.gapi.load('picker', () => {
@@ -363,20 +369,26 @@ class MenuBar extends React.Component {
             this.props.vm.saveProjectSb3().then(blob => {
                 // Obtain token from Google Auth or prompt if needed
                 let token = '';
-                    if (window.gapi && window.gapi.auth2 && window.gapi.auth2.getAuthInstance()) {
-                        const authInstance = window.gapi.auth2.getAuthInstance();
-                        if (authInstance.isSignedIn.get()) {
-                            token = authInstance.currentUser.get().getAuthResponse().access_token;
-                        } else {
-                            authInstance.signIn().then(() => this.handleSaveToGoogleDrive()());
-                            return;
-                        }
-                    }
+                const googleAuth = (window.gapi && window.gapi.auth2) ? window.gapi.auth2.getAuthInstance() : null;
 
-        if (!token) {
-            alert('Please sign in to Google to access Drive.');
-            return;
-        }
+                if (googleAuth) {
+                    if (googleAuth.isSignedIn.get()) {
+                        token = googleAuth.currentUser.get().getAuthResponse().access_token;
+                    } else {
+                        googleAuth.signIn().then(() => {
+                            this.handleSaveToGoogleDrive()();
+                        }).catch(err => {
+                            console.error('Sign-in error:', err);
+                            alert('Google Sign-In was cancelled or failed.');
+                        });
+                        return;
+                    }
+                } else {
+                    alert('Google API is initializing. Please try again in a moment.');
+                    return;
+                }
+
+        if (!token) return;
 
                 const metadata = {
                     name: `${this.props.projectTitle || 'Scratch Project'}.sb3`,
