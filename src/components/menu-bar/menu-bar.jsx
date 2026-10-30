@@ -304,13 +304,21 @@ class MenuBar extends React.Component {
         return () => {
             this.props.onRequestCloseFile();
 
-            const token = (window.gapi && window.gapi.auth2 && window.gapi.auth2.getAuthInstance()) ? 
-                window.gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token : '';
+            let token = '';
+                if (window.gapi && window.gapi.auth2 && window.gapi.auth2.getAuthInstance()) {
+                    const authInstance = window.gapi.auth2.getAuthInstance();
+                    if (authInstance.isSignedIn.get()) {
+                        token = authInstance.currentUser.get().getAuthResponse().access_token;
+                    } else {
+                        authInstance.signIn().then(() => this.handleLoadFromGoogleDrive()());
+                        return;
+                    }
+                }
 
-            if (!token) {
-                alert('Google API authorization missing or expired. Please sign in.');
-                return;
-            }
+        if (!token) {
+            alert('Please sign in to Google to access Drive.');
+            return;
+        }
 
             // Load Google Drive Picker
             window.gapi.load('picker', () => {
@@ -354,13 +362,21 @@ class MenuBar extends React.Component {
             // Package the current project directly into an .sb3 blob
             this.props.vm.saveProjectSb3().then(blob => {
                 // Obtain token from Google Auth or prompt if needed
-                const token = (window.gapi && window.gapi.auth2 && window.gapi.auth2.getAuthInstance()) ? 
-                    window.gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token : '';
+                let token = '';
+                    if (window.gapi && window.gapi.auth2 && window.gapi.auth2.getAuthInstance()) {
+                        const authInstance = window.gapi.auth2.getAuthInstance();
+                        if (authInstance.isSignedIn.get()) {
+                            token = authInstance.currentUser.get().getAuthResponse().access_token;
+                        } else {
+                            authInstance.signIn().then(() => this.handleSaveToGoogleDrive()());
+                            return;
+                        }
+                    }
 
-                if (!token) {
-                    alert('Google API authorization missing or expired. Please sign in.');
-                    return;
-                }
+        if (!token) {
+            alert('Please sign in to Google to access Drive.');
+            return;
+        }
 
                 const metadata = {
                     name: `${this.props.projectTitle || 'Scratch Project'}.sb3`,
@@ -594,43 +610,43 @@ class MenuBar extends React.Component {
                                     )}
                                     <MenuSection>
                                     <MenuItem
-                                        onClick={this.handleLoadFromGoogleDrive()}
+                                        onClick={this.props.onStartSelectingFileUpload}
                                     >
-                                        <FormattedMessage
-                                            defaultMessage="Load from Google Drive"
-                                            description="Menu bar item for loading project directly from Google Drive"
-                                            id="gui.menuBar.loadFromDrive"
-                                        />
-                                    </MenuItem>    
-                                        <MenuItem
-                                            onClick={this.props.onStartSelectingFileUpload}
-                                        >
-                                            {this.props.intl.formatMessage(sharedMessages.loadFromComputerTitle)}
-                                        </MenuItem>
-                                        <SB3Downloader>{(className, downloadProjectCallback) => (
-                                            <React.Fragment>
-                                                <MenuItem
-                                                    className={className}
-                                                    onClick={this.getSaveToComputerHandler(downloadProjectCallback)}
-                                                >
-                                                    <FormattedMessage
-                                                        defaultMessage="Save to your computer"
-                                                        description="Menu bar item for downloading a project to your computer"
-                                                        id="gui.menuBar.downloadToComputer"
+                                        {this.props.intl.formatMessage(sharedMessages.loadFromComputerTitle)}
+                                    </MenuItem>
+                                    <SB3Downloader>{(className, downloadProjectCallback) => (
+                                        <React.Fragment>
+                                            <MenuItem
+                                                className={className}
+                                                onClick={this.getSaveToComputerHandler(downloadProjectCallback)}
+                                            >
+                                                <FormattedMessage
+                                                    defaultMessage="Save to your computer"
+                                                    description="Menu bar item for downloading a project to your computer"
+                                                    id="gui.menuBar.downloadToComputer"
                                                 />
-                                                </MenuItem>
-                                                <MenuItem
-                                                    className={className}
-                                                    onClick={this.handleSaveToGoogleDrive()}
-                                                >
-                                                    <FormattedMessage
-                                                        defaultMessage="Save to Google Drive"
-                                                        description="Menu bar item for saving project directly to Google Drive"
-                                                        id="gui.menuBar.saveToDrive"
-                                                    />
-                                                </MenuItem>
-                                            </React.Fragment>
-                                        )}</SB3Downloader>
+                                            </MenuItem>
+                                            <MenuItem
+                                                onClick={this.handleLoadFromGoogleDrive()}
+                                            >
+                                                <FormattedMessage
+                                                    defaultMessage="Load from Google Drive"
+                                                    description="Menu bar item for loading project directly from Google Drive"
+                                                    id="gui.menuBar.loadFromDrive"
+                                                />
+                                            </MenuItem>
+                                            <MenuItem
+                                                className={className}
+                                                onClick={this.handleSaveToGoogleDrive()}
+                                            >
+                                                <FormattedMessage
+                                                    defaultMessage="Save to Google Drive"
+                                                    description="Menu bar item for saving project directly to Google Drive"
+                                                    id="gui.menuBar.saveToDrive"
+                                                />
+                                            </MenuItem>
+                                        </React.Fragment>
+                                    )}</SB3Downloader>
                                     </MenuSection>
                                 </MenuBarMenu>
                             </div>
