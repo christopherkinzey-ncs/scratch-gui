@@ -188,6 +188,7 @@ class MenuBar extends React.Component {
             'handleKeyPress',
             'handleRestoreOption',
             'getSaveToComputerHandler',
+            'handleSaveToGoogleDrive',
             'restoreOptionMessage'
         ]);
     }
@@ -298,13 +299,21 @@ class MenuBar extends React.Component {
             }
         };
     }
-    handleSaveToGoogleDrive (downloadProjectCallback) {
+    handleSaveToGoogleDrive () {
         return () => {
             this.props.onRequestCloseFile();
-            downloadProjectCallback((blob) => {
-                const token = window.gapi && window.gapi.auth2 ? 
+            
+            // Package the current project directly into an .sb3 blob
+            this.props.vm.saveProjectSb3().then(blob => {
+                // Obtain token from Google Auth or prompt if needed
+                const token = (window.gapi && window.gapi.auth2 && window.gapi.auth2.getAuthInstance()) ? 
                     window.gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token : '';
-                
+
+                if (!token) {
+                    alert('Google API authorization missing or expired. Please sign in.');
+                    return;
+                }
+
                 const metadata = {
                     name: `${this.props.projectTitle || 'Scratch Project'}.sb3`,
                     mimeType: 'application/x-scratch-project',
@@ -320,8 +329,17 @@ class MenuBar extends React.Component {
                     headers: new Headers({'Authorization': `Bearer ${token}`}),
                     body: form
                 })
-                .then(res => res.ok ? alert('Saved successfully to Google Drive!') : alert('Error saving to Drive.'))
-                .catch(err => console.error(err));
+                .then(res => {
+                    if (res.ok) {
+                        alert('Project saved successfully to Google Drive!');
+                    } else {
+                        alert('Error saving to Drive. Make sure Drive API permissions are active.');
+                    }
+                })
+                .catch(err => {
+                    console.error('Drive upload error:', err);
+                    alert('Network error while saving to Google Drive.');
+                });
             });
         };
     }
@@ -546,7 +564,7 @@ class MenuBar extends React.Component {
                                                 </MenuItem>
                                                 <MenuItem
                                                     className={className}
-                                                    onClick={this.handleSaveToGoogleDrive(downloadProjectCallback)}
+                                                    onClick={this.handleSaveToGoogleDrive()}
                                                 >
                                                     <FormattedMessage
                                                         defaultMessage="Save to Google Drive"
