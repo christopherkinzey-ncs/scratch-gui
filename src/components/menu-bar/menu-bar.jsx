@@ -312,7 +312,8 @@ class MenuBar extends React.Component {
                     token = googleAuth.currentUser.get().getAuthResponse().access_token;
                 } else {
                     googleAuth.signIn().then(() => {
-                        this.handleLoadFromGoogleDrive()();
+                        const fn = this.handleLoadFromGoogleDrive();
+                        fn();
                     }).catch(err => {
                         console.error('Sign-in error:', err);
                         alert('Google Sign-In was cancelled or failed.');
@@ -376,7 +377,8 @@ class MenuBar extends React.Component {
                         token = googleAuth.currentUser.get().getAuthResponse().access_token;
                     } else {
                         googleAuth.signIn().then(() => {
-                            this.handleSaveToGoogleDrive()();
+                            const fn = this.handleSaveToGoogleDrive();
+                            fn();
                         }).catch(err => {
                             console.error('Sign-in error:', err);
                             alert('Google Sign-In was cancelled or failed.');
