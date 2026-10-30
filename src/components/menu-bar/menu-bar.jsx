@@ -188,6 +188,7 @@ class MenuBar extends React.Component {
             'handleKeyPress',
             'handleRestoreOption',
             'getSaveToComputerHandler',
+            'handleLoadFromGoogleDrive',
             'handleSaveToGoogleDrive',
             'restoreOptionMessage'
         ]);
@@ -297,6 +298,53 @@ class MenuBar extends React.Component {
                 const metadata = collectMetadata(this.props.vm, this.props.projectTitle, this.props.locale);
                 this.props.onProjectTelemetryEvent('projectDidSave', metadata);
             }
+        };
+    }
+    handleLoadFromGoogleDrive () {
+        return () => {
+            this.props.onRequestCloseFile();
+
+            const token = (window.gapi && window.gapi.auth2 && window.gapi.auth2.getAuthInstance()) ? 
+                window.gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token : '';
+
+            if (!token) {
+                alert('Google API authorization missing or expired. Please sign in.');
+                return;
+            }
+
+            // Load Google Drive Picker
+            window.gapi.load('picker', () => {
+                const view = new window.google.picker.DocsView()
+                    .setMimeTypes('application/x-scratch-project,application/octet-stream');
+
+                const picker = new window.google.picker.PickerBuilder()
+                    .addView(view)
+                    .setOAuthToken(token)
+                    .setCallback((data) => {
+                        if (data.action === window.google.picker.Action.PICKED) {
+                            const fileId = data.docs[0].id;
+
+                            // Fetch file content binary from Google Drive API
+                            fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            })
+                            .then(res => res.arrayBuffer())
+                            .then(buffer => {
+                                // Load directly into Scratch VM
+                                this.props.vm.loadProject(buffer).then(() => {
+                                    alert('Project loaded successfully!');
+                                });
+                            })
+                            .catch(err => {
+                                console.error('Drive load error:', err);
+                                alert('Error downloading project from Google Drive.');
+                            });
+                        }
+                    })
+                    .build();
+
+                picker.setVisible(true);
+            });
         };
     }
     handleSaveToGoogleDrive () {
@@ -545,6 +593,15 @@ class MenuBar extends React.Component {
                                         </MenuSection>
                                     )}
                                     <MenuSection>
+                                    <MenuItem
+                                        onClick={this.handleLoadFromGoogleDrive()}
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Load from Google Drive"
+                                            description="Menu bar item for loading project directly from Google Drive"
+                                            id="gui.menuBar.loadFromDrive"
+                                        />
+                                    </MenuItem>    
                                         <MenuItem
                                             onClick={this.props.onStartSelectingFileUpload}
                                         >
