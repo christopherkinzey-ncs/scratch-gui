@@ -304,121 +304,139 @@ class MenuBar extends React.Component {
         return () => {
             this.props.onRequestCloseFile();
 
-            let token = '';
-            const googleAuth = (window.gapi && window.gapi.auth2) ? window.gapi.auth2.getAuthInstance() : null;
-
-            if (googleAuth) {
-                if (googleAuth.isSignedIn.get()) {
-                    token = googleAuth.currentUser.get().getAuthResponse().access_token;
-                } else {
-                    googleAuth.signIn().then(() => {
-                        const fn = this.handleLoadFromGoogleDrive();
-                        fn();
-                    }).catch(err => {
-                        console.error('Sign-in error:', err);
-                        alert('Google Sign-In was cancelled or failed.');
-                    });
-                    return;
-                }
-            } else {
-                alert('Google API is initializing. Please try again in a moment.');
+            if (!window.gapi || !window.gapi.auth2) {
+                alert('Google API script is not loaded yet. Please check your internet connection.');
                 return;
             }
 
-        if (!token) return;
+            const getOrInitAuth = () => {
+                let googleAuth = window.gapi.auth2.getAuthInstance();
+                if (!googleAuth) {
+                    googleAuth = window.gapi.auth2.init({
+                        client_id: '616910740159-olchtcld2rmak1ejrf216jf9tc51fg6q.apps.googleusercontent.com',
+                        scope: 'https://www.googleapis.com/auth/drive.file'
+                    });
+                }
+                return googleAuth;
+            };
 
-            // Load Google Drive Picker
-            window.gapi.load('picker', () => {
-                const view = new window.google.picker.DocsView()
-                    .setMimeTypes('application/x-scratch-project,application/octet-stream');
+            const executeLoad = (token) => {
+                if (!token) return;
+                window.gapi.load('picker', () => {
+                    const view = new window.google.picker.DocsView()
+                        .setMimeTypes('application/x-scratch-project,application/octet-stream');
 
-                const picker = new window.google.picker.PickerBuilder()
-                    .addView(view)
-                    .setOAuthToken(token)
-                    .setCallback((data) => {
-                        if (data.action === window.google.picker.Action.PICKED) {
-                            const fileId = data.docs[0].id;
+                    const picker = new window.google.picker.PickerBuilder()
+                        .addView(view)
+                        .setOAuthToken(token)
+                        .setCallback((data) => {
+                            if (data.action === window.google.picker.Action.PICKED) {
+                                const fileId = data.docs[0].id;
 
-                            // Fetch file content binary from Google Drive API
-                            fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-                                headers: { 'Authorization': `Bearer ${token}` }
-                            })
-                            .then(res => res.arrayBuffer())
-                            .then(buffer => {
-                                // Load directly into Scratch VM
-                                this.props.vm.loadProject(buffer).then(() => {
-                                    alert('Project loaded successfully!');
+                                fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+                                    headers: { 'Authorization': `Bearer ${token}` }
+                                })
+                                .then(res => res.arrayBuffer())
+                                .then(buffer => {
+                                    this.props.vm.loadProject(buffer).then(() => {
+                                        alert('Project loaded successfully!');
+                                    });
+                                })
+                                .catch(err => {
+                                    console.error('Drive load error:', err);
+                                    alert('Error downloading project from Google Drive.');
                                 });
-                            })
-                            .catch(err => {
-                                console.error('Drive load error:', err);
-                                alert('Error downloading project from Google Drive.');
-                            });
-                        }
-                    })
-                    .build();
+                            }
+                        })
+                        .build();
 
-                picker.setVisible(true);
-            });
+                    picker.setVisible(true);
+                });
+            };
+
+            const googleAuth = getOrInitAuth();
+
+            if (googleAuth.isSignedIn && googleAuth.isSignedIn.get()) {
+                const token = googleAuth.currentUser.get().getAuthResponse().access_token;
+                executeLoad(token);
+            } else {
+                googleAuth.signIn().then(() => {
+                    const token = googleAuth.currentUser.get().getAuthResponse().access_token;
+                    executeLoad(token);
+                }).catch(err => {
+                    console.error('Sign-in error:', err);
+                    alert('Google Sign-In was cancelled or failed.');
+                });
+            }
         };
     }
+
     handleSaveToGoogleDrive () {
         return () => {
             this.props.onRequestCloseFile();
-            
-            // Package the current project directly into an .sb3 blob
-            this.props.vm.saveProjectSb3().then(blob => {
-                // Obtain token from Google Auth or prompt if needed
-                let token = '';
-                const googleAuth = (window.gapi && window.gapi.auth2) ? window.gapi.auth2.getAuthInstance() : null;
 
-                if (googleAuth) {
-                    if (googleAuth.isSignedIn.get()) {
-                        token = googleAuth.currentUser.get().getAuthResponse().access_token;
-                    } else {
-                        googleAuth.signIn().then(() => {
-                            const fn = this.handleSaveToGoogleDrive();
-                            fn();
-                        }).catch(err => {
-                            console.error('Sign-in error:', err);
-                            alert('Google Sign-In was cancelled or failed.');
-                        });
-                        return;
-                    }
-                } else {
-                    alert('Google API is initializing. Please try again in a moment.');
-                    return;
+            if (!window.gapi || !window.gapi.auth2) {
+                alert('Google API script is not loaded yet. Please check your internet connection.');
+                return;
+            }
+
+            const getOrInitAuth = () => {
+                let googleAuth = window.gapi.auth2.getAuthInstance();
+                if (!googleAuth) {
+                    googleAuth = window.gapi.auth2.init({
+                        client_id: '616910740159-olchtcld2rmak1ejrf216jf9tc51fg6q.apps.googleusercontent.com',
+                        scope: 'https://www.googleapis.com/auth/drive.file'
+                    });
                 }
+                return googleAuth;
+            };
 
-        if (!token) return;
+            const executeSave = (token) => {
+                if (!token) return;
+                this.props.vm.saveProjectSb3().then(blob => {
+                    const metadata = {
+                        name: `${this.props.projectTitle || 'Scratch Project'}.sb3`,
+                        mimeType: 'application/x-scratch-project',
+                        parents: ['root']
+                    };
 
-                const metadata = {
-                    name: `${this.props.projectTitle || 'Scratch Project'}.sb3`,
-                    mimeType: 'application/x-scratch-project',
-                    parents: ['root']
-                };
+                    const form = new FormData();
+                    form.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
+                    form.append('file', blob);
 
-                const form = new FormData();
-                form.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
-                form.append('file', blob);
-
-                fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-                    method: 'POST',
-                    headers: new Headers({'Authorization': `Bearer ${token}`}),
-                    body: form
-                })
-                .then(res => {
-                    if (res.ok) {
-                        alert('Project saved successfully to Google Drive!');
-                    } else {
-                        alert('Error saving to Drive. Make sure Drive API permissions are active.');
-                    }
-                })
-                .catch(err => {
-                    console.error('Drive upload error:', err);
-                    alert('Network error while saving to Google Drive.');
+                    fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                        method: 'POST',
+                        headers: new Headers({'Authorization': `Bearer ${token}`}),
+                        body: form
+                    })
+                    .then(res => {
+                        if (res.ok) {
+                            alert('Project saved successfully to Google Drive!');
+                        } else {
+                            alert('Error saving to Drive. Make sure Drive API permissions are active.');
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Drive upload error:', err);
+                        alert('Network error while saving to Google Drive.');
+                    });
                 });
-            });
+            };
+
+            const googleAuth = getOrInitAuth();
+
+            if (googleAuth.isSignedIn && googleAuth.isSignedIn.get()) {
+                const token = googleAuth.currentUser.get().getAuthResponse().access_token;
+                executeSave(token);
+            } else {
+                googleAuth.signIn().then(() => {
+                    const token = googleAuth.currentUser.get().getAuthResponse().access_token;
+                    executeSave(token);
+                }).catch(err => {
+                    console.error('Sign-in error:', err);
+                    alert('Google Sign-In was cancelled or failed.');
+                });
+            }
         };
     }
     restoreOptionMessage (deletedItem) {
