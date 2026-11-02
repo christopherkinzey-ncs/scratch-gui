@@ -388,7 +388,7 @@ class MenuBar extends React.Component {
                         `name = '${studentEmail}' and '${MASTER_FOLDER_ID}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
                     );
 
-                    return fetch(`https://www.googleapis.com/drive/v3/files?q=${query}`, {
+                    return fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&supportsAllDrives=true&includeItemsFromAllDrives=true`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     })
                     .then(res => res.json())
@@ -405,7 +405,7 @@ class MenuBar extends React.Component {
                             parents: [MASTER_FOLDER_ID]
                         };
 
-                        return fetch('https://www.googleapis.com/drive/v3/files', {
+                        return fetch('https://www.googleapis.com/drive/v3/files?supportsAllDrives=true', {
                             method: 'POST',
                             headers: {
                                 'Authorization': `Bearer ${token}`,
@@ -437,7 +437,7 @@ class MenuBar extends React.Component {
                             form.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
                             form.append('file', blob);
 
-                            return fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                            return fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true', {
                                 method: 'POST',
                                 headers: new Headers({'Authorization': `Bearer ${token}`}),
                                 body: form
