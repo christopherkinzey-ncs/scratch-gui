@@ -357,12 +357,14 @@ class MenuBar extends React.Component {
                     window.gapi.load('picker', () => {
                         // View 1: Direct open inside student's personal folder
                         const studentView = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS)
+                            .setTitle('My Folder')
                             .setParent(targetFolderId)
                             .setIncludeFolders(false)
                             .setMimeTypes('application/x-scratch-project,application/octet-stream');
 
                         // View 2: Master folder view for teachers to browse all student subfolders
                         const masterView = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS)
+                            .setTitle('Scratch Submissions')
                             .setParent(MASTER_FOLDER_ID)
                             .setIncludeFolders(true)
                             .setSelectFolderEnabled(false)
