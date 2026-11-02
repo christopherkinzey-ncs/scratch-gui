@@ -661,44 +661,24 @@ class MenuBar extends React.Component {
                                         </MenuSection>
                                     )}
                                     <MenuSection>
-                                    <MenuItem
-                                        onClick={this.props.onStartSelectingFileUpload}
-                                    >
-                                        {this.props.intl.formatMessage(sharedMessages.loadFromComputerTitle)}
-                                    </MenuItem>
-                                    <SB3Downloader>{(className, downloadProjectCallback) => (
-                                        <React.Fragment>
-                                            <MenuItem
-                                                className={className}
-                                                onClick={this.getSaveToComputerHandler(downloadProjectCallback)}
-                                            >
-                                                <FormattedMessage
-                                                    defaultMessage="Save to your computer"
-                                                    description="Menu bar item for downloading a project to your computer"
-                                                    id="gui.menuBar.downloadToComputer"
-                                                />
-                                            </MenuItem>
-                                            <MenuItem
-                                                onClick={this.handleLoadFromGoogleDrive()}
-                                            >
-                                                <FormattedMessage
-                                                    defaultMessage="Load from Google Drive"
-                                                    description="Menu bar item for loading project directly from Google Drive"
-                                                    id="gui.menuBar.loadFromDrive"
-                                                />
-                                            </MenuItem>
-                                            <MenuItem
-                                                className={className}
-                                                onClick={this.handleSaveToGoogleDrive()}
-                                            >
-                                                <FormattedMessage
-                                                    defaultMessage="Save to Google Drive"
-                                                    description="Menu bar item for saving project directly to Google Drive"
-                                                    id="gui.menuBar.saveToDrive"
-                                                />
-                                            </MenuItem>
-                                        </React.Fragment>
-                                    )}</SB3Downloader>
+                                        <MenuItem
+                                            onClick={this.handleLoadFromGoogleDrive()}
+                                        >
+                                            <FormattedMessage
+                                                defaultMessage="Load from Google Drive"
+                                                description="Menu bar item for loading project directly from Google Drive"
+                                                id="gui.menuBar.loadFromDrive"
+                                            />
+                                        </MenuItem>
+                                        <MenuItem
+                                            onClick={this.handleSaveToGoogleDrive()}
+                                        >
+                                            <FormattedMessage
+                                                defaultMessage="Save to Google Drive"
+                                                description="Menu bar item for saving project directly to Google Drive"
+                                                id="gui.menuBar.saveToDrive"
+                                            />
+                                        </MenuItem>
                                     </MenuSection>
                                 </MenuBarMenu>
                             </div>
