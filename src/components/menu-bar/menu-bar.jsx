@@ -359,7 +359,9 @@ class MenuBar extends React.Component {
                         // Open Google Picker directly inside the student's personal subfolder
                         const view = new window.google.picker.DocsView()
                             .setParent(targetFolderId)
-                            .setIncludeFolders(false)
+                            .setIncludeFolders(true)
+                            .setSelectFolderEnabled(false)
+                            .setEnableDrives(true)
                             .setMimeTypes('application/x-scratch-project,application/octet-stream');
 
                         const picker = new window.google.picker.PickerBuilder()
