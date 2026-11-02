@@ -366,9 +366,17 @@ class MenuBar extends React.Component {
 
             this.getGoogleToken((token) => {
                 if (!token) return;
+
+                const defaultTitle = this.props.projectTitle || 'Scratch Project';
+                const userTitle = prompt('Enter a name for your Scratch project:', defaultTitle);
+
+                if (userTitle === null) return;
+
+                const fileName = userTitle.trim() || 'Scratch Project';
+
                 this.props.vm.saveProjectSb3().then(blob => {
                     const metadata = {
-                        name: `${this.props.projectTitle || 'Scratch Project'}.sb3`,
+                        name: `${fileName}.sb3`,
                         mimeType: 'application/x-scratch-project',
                         parents: ['root']
                     };
@@ -384,7 +392,7 @@ class MenuBar extends React.Component {
                     })
                     .then(res => {
                         if (res.ok) {
-                            alert('Project saved successfully to Google Drive!');
+                            alert(`Project "${fileName}" saved successfully to Google Drive!`);
                         } else {
                             alert('Error saving to Drive. Make sure Drive API permissions are active.');
                         }
