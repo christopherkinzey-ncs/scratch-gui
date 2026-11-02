@@ -19,11 +19,8 @@
     <script>
       function initGoogleAPI() {
         if (window.gapi) {
-          gapi.load('client:auth2:picker', function() {
-            gapi.auth2.init({
-              client_id: '616910740159-olchtcld2rmak1ejrf216jf9tc51fg6q.apps.googleusercontent.com',
-              scope: 'https://www.googleapis.com/auth/drive.file'
-            });
+          window.gapi.load('client:auth2:picker', function() {
+            // Modules loaded successfully
           });
         }
       }
