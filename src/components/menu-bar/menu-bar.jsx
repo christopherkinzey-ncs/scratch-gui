@@ -300,27 +300,31 @@ class MenuBar extends React.Component {
             }
         };
     }
+    getGoogleToken (callback) {
+        if (window.google && window.google.accounts && window.google.accounts.oauth2) {
+            const client = window.google.accounts.oauth2.initTokenClient({
+                client_id: '616910740159-olchtcld2rmak1ejrf216jf9tc51fg6q.apps.googleusercontent.com',
+                scope: 'https://www.googleapis.com/auth/drive.file',
+                callback: (response) => {
+                    if (response.error) {
+                        console.error('OAuth token error:', response);
+                        alert('Google Sign-In failed or was cancelled.');
+                        return;
+                    }
+                    callback(response.access_token);
+                }
+            });
+            client.requestAccessToken();
+        } else {
+            alert('Google API is initializing. Please try again in a moment.');
+        }
+    }
+
     handleLoadFromGoogleDrive () {
         return () => {
             this.props.onRequestCloseFile();
 
-            if (!window.gapi || !window.gapi.auth2) {
-                alert('Google API script is not loaded yet. Please check your internet connection.');
-                return;
-            }
-
-            const getOrInitAuth = () => {
-                let googleAuth = window.gapi.auth2.getAuthInstance();
-                if (!googleAuth) {
-                    googleAuth = window.gapi.auth2.init({
-                        client_id: '616910740159-olchtcld2rmak1ejrf216jf9tc51fg6q.apps.googleusercontent.com',
-                        scope: 'https://www.googleapis.com/auth/drive.file'
-                    });
-                }
-                return googleAuth;
-            };
-
-            const executeLoad = (token) => {
+            this.getGoogleToken((token) => {
                 if (!token) return;
                 window.gapi.load('picker', () => {
                     const view = new window.google.picker.DocsView()
@@ -352,22 +356,7 @@ class MenuBar extends React.Component {
 
                     picker.setVisible(true);
                 });
-            };
-
-            const googleAuth = getOrInitAuth();
-
-            if (googleAuth.isSignedIn && googleAuth.isSignedIn.get()) {
-                const token = googleAuth.currentUser.get().getAuthResponse().access_token;
-                executeLoad(token);
-            } else {
-                googleAuth.signIn().then(() => {
-                    const token = googleAuth.currentUser.get().getAuthResponse().access_token;
-                    executeLoad(token);
-                }).catch(err => {
-                    console.error('Sign-in error:', err);
-                    alert('Google Sign-In was cancelled or failed.');
-                });
-            }
+            });
         };
     }
 
@@ -375,23 +364,7 @@ class MenuBar extends React.Component {
         return () => {
             this.props.onRequestCloseFile();
 
-            if (!window.gapi || !window.gapi.auth2) {
-                alert('Google API script is not loaded yet. Please check your internet connection.');
-                return;
-            }
-
-            const getOrInitAuth = () => {
-                let googleAuth = window.gapi.auth2.getAuthInstance();
-                if (!googleAuth) {
-                    googleAuth = window.gapi.auth2.init({
-                        client_id: '616910740159-olchtcld2rmak1ejrf216jf9tc51fg6q.apps.googleusercontent.com',
-                        scope: 'https://www.googleapis.com/auth/drive.file'
-                    });
-                }
-                return googleAuth;
-            };
-
-            const executeSave = (token) => {
+            this.getGoogleToken((token) => {
                 if (!token) return;
                 this.props.vm.saveProjectSb3().then(blob => {
                     const metadata = {
@@ -421,22 +394,7 @@ class MenuBar extends React.Component {
                         alert('Network error while saving to Google Drive.');
                     });
                 });
-            };
-
-            const googleAuth = getOrInitAuth();
-
-            if (googleAuth.isSignedIn && googleAuth.isSignedIn.get()) {
-                const token = googleAuth.currentUser.get().getAuthResponse().access_token;
-                executeSave(token);
-            } else {
-                googleAuth.signIn().then(() => {
-                    const token = googleAuth.currentUser.get().getAuthResponse().access_token;
-                    executeSave(token);
-                }).catch(err => {
-                    console.error('Sign-in error:', err);
-                    alert('Google Sign-In was cancelled or failed.');
-                });
-            }
+            });
         };
     }
     restoreOptionMessage (deletedItem) {
