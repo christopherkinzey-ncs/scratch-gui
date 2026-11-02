@@ -326,43 +326,73 @@ class MenuBar extends React.Component {
 
             // Master Folder ID for "Scratch Submissions"
             const MASTER_FOLDER_ID = '1df1klgPC4GxBgUuIZ0SP6Uq2-BOPS1tv';
-            
+
             this.getGoogleToken((token) => {
                 if (!token) return;
-                window.gapi.load('picker', () => {
-                    // Open Google Picker pre-filtered inside the Scratch Submissions folder
-                    const view = new window.google.picker.DocsView()
-                        .setParent(MASTER_FOLDER_ID)
-                        .setIncludeFolders(true)
-                        .setSelectFolderEnabled(false)
-                        .setMimeTypes('application/x-scratch-project,application/octet-stream');
-                    
-                    const picker = new window.google.picker.PickerBuilder()
-                        .addView(view)
-                        .setOAuthToken(token)
-                        .enableFeature(window.google.picker.Feature.SUPPORT_DRIVES)
-                        .setCallback((data) => {
-                            if (data.action === window.google.picker.Action.PICKED) {
-                                const fileId = data.docs[0].id;
 
-                                fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&supportsAllDrives=true`, {
-                                    headers: { 'Authorization': `Bearer ${token}` }
-                                })
-                                .then(res => res.arrayBuffer())
-                                .then(buffer => {
-                                    this.props.vm.loadProject(buffer).then(() => {
-                                        alert('Project loaded successfully!');
+                // 1. Fetch student email to locate their personal subfolder
+                fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+                .then(res => res.json())
+                .then(userinfo => {
+                    const studentEmail = userinfo.email || '';
+
+                    // 2. Search for student's subfolder inside Scratch Submissions
+                    const qStr = `'${MASTER_FOLDER_ID}' in parents and name = '${studentEmail}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+
+                    return fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(qStr)}&supportsAllDrives=true&includeItemsFromAllDrives=true`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    })
+                    .then(res => res.json())
+                    .then(searchResult => {
+                        // Use student folder ID if found, otherwise default to master folder
+                        let targetFolderId = MASTER_FOLDER_ID;
+                        if (searchResult.files && searchResult.files.length > 0) {
+                            targetFolderId = searchResult.files[0].id;
+                        }
+                        return targetFolderId;
+                    });
+                })
+                .then(targetFolderId => {
+                    window.gapi.load('picker', () => {
+                        // Open Google Picker directly inside the student's personal subfolder
+                        const view = new window.google.picker.DocsView()
+                            .setParent(targetFolderId)
+                            .setIncludeFolders(false)
+                            .setMimeTypes('application/x-scratch-project,application/octet-stream');
+
+                        const picker = new window.google.picker.PickerBuilder()
+                            .addView(view)
+                            .setOAuthToken(token)
+                            .enableFeature(window.google.picker.Feature.SUPPORT_DRIVES)
+                            .setCallback((data) => {
+                                if (data.action === window.google.picker.Action.PICKED) {
+                                    const fileId = data.docs[0].id;
+
+                                    fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&supportsAllDrives=true`, {
+                                        headers: { 'Authorization': `Bearer ${token}` }
+                                    })
+                                    .then(res => res.arrayBuffer())
+                                    .then(buffer => {
+                                        this.props.vm.loadProject(buffer).then(() => {
+                                            alert('Project loaded successfully!');
+                                        });
+                                    })
+                                    .catch(err => {
+                                        console.error('Drive load error:', err);
+                                        alert('Error downloading project from Google Drive.');
                                     });
-                                })
-                                .catch(err => {
-                                    console.error('Drive load error:', err);
-                                    alert('Error downloading project from Google Drive.');
-                                });
-                            }
-                        })
-                        .build();
+                                }
+                            })
+                            .build();
 
-                    picker.setVisible(true);
+                        picker.setVisible(true);
+                    });
+                })
+                .catch(err => {
+                    console.error('Drive picker initialization error:', err);
+                    alert('Could not open Google Drive picker.');
                 });
             });
         };
