@@ -355,15 +355,22 @@ class MenuBar extends React.Component {
                 })
                 .then(targetFolderId => {
                     window.gapi.load('picker', () => {
-                        // Create a view locked to the target folder, with navigation enabled
-                        const view = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS)
+                        // View 1: Direct open inside student's personal folder
+                        const studentView = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS)
                             .setParent(targetFolderId)
+                            .setIncludeFolders(false)
+                            .setMimeTypes('application/x-scratch-project,application/octet-stream');
+
+                        // View 2: Master folder view for teachers to browse all student subfolders
+                        const masterView = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS)
+                            .setParent(MASTER_FOLDER_ID)
                             .setIncludeFolders(true)
                             .setSelectFolderEnabled(false)
                             .setMimeTypes('application/x-scratch-project,application/octet-stream');
 
-                        const picker = new window.google.picker.PickerBuilder()
-                            .addView(view)
+                        const builder = new window.google.picker.PickerBuilder()
+                            .addView(studentView)
+                            .addView(masterView)
                             .setOAuthToken(token)
                             .enableFeature(window.google.picker.Feature.SUPPORT_DRIVES)
                             .setCallback((data) => {
@@ -384,9 +391,9 @@ class MenuBar extends React.Component {
                                         alert('Error downloading project from Google Drive.');
                                     });
                                 }
-                            })
-                            .build();
+                            });
 
+                        const picker = builder.build();
                         picker.setVisible(true);
                     });
                 })
@@ -397,7 +404,7 @@ class MenuBar extends React.Component {
             });
         };
     }
-
+    
     handleSaveToGoogleDrive () {
         return () => {
             this.props.onRequestCloseFile();
