@@ -366,7 +366,6 @@ class MenuBar extends React.Component {
                             .addView(view)
                             .setOAuthToken(token)
                             .enableFeature(window.google.picker.Feature.SUPPORT_DRIVES)
-                            .enableFeature(window.google.picker.Feature.MINE_ONLY)
                             .setCallback((data) => {
                                 if (data.action === window.google.picker.Action.PICKED) {
                                     const fileId = data.docs[0].id;
