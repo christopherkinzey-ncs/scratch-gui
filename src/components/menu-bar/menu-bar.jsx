@@ -325,7 +325,7 @@ class MenuBar extends React.Component {
             this.props.onRequestCloseFile();
 
             // Master Folder ID for "Scratch Submissions"
-            const MASTER_FOLDER_ID = '1df1klgPC4GxBgUulZ0SP6Uq2-BOPS1tv';
+            const MASTER_FOLDER_ID = '1df1klgPC4GxBgUuIZ0SP6Uq2-BOPS1tv';
 
             this.getGoogleToken((token) => {
                 if (!token) return;
@@ -370,7 +370,7 @@ class MenuBar extends React.Component {
             this.props.onRequestCloseFile();
 
             // Master Folder ID for "Scratch Submissions"
-            const MASTER_FOLDER_ID = '1df1klgPC4GxBgUulZ0SP6Uq2-BOPS1tv';
+            const MASTER_FOLDER_ID = '1df1klgPC4GxBgUuIZ0SP6Uq2-BOPS1tv';
 
             this.getGoogleToken((token) => {
                 if (!token) return;
