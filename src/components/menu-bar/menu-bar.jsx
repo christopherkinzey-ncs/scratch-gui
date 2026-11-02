@@ -324,10 +324,15 @@ class MenuBar extends React.Component {
         return () => {
             this.props.onRequestCloseFile();
 
+            // Master Folder ID for "Scratch Submissions"
+            const MASTER_FOLDER_ID = '1df1klgPC4GxBgUulZ0SP6Uq2-BOPS1tv';
+
             this.getGoogleToken((token) => {
                 if (!token) return;
                 window.gapi.load('picker', () => {
+                    // Open Google Picker pre-filtered inside the Scratch Submissions folder
                     const view = new window.google.picker.DocsView()
+                        .setParent(MASTER_FOLDER_ID)
                         .setMimeTypes('application/x-scratch-project,application/octet-stream');
 
                     const picker = new window.google.picker.PickerBuilder()
@@ -364,43 +369,92 @@ class MenuBar extends React.Component {
         return () => {
             this.props.onRequestCloseFile();
 
+            // Master Folder ID for "Scratch Submissions"
+            const MASTER_FOLDER_ID = '1df1klgPC4GxBgUulZ0SP6Uq2-BOPS1tv';
+
             this.getGoogleToken((token) => {
                 if (!token) return;
 
-                const defaultTitle = this.props.projectTitle || 'Scratch Project';
-                const userTitle = prompt('Enter a name for your Scratch project:', defaultTitle);
+                // 1. Fetch student's email address via UserInfo API
+                fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+                .then(res => res.json())
+                .then(userinfo => {
+                    const studentEmail = userinfo.email || 'unknown_student';
 
-                if (userTitle === null) return;
+                    // 2. Search for student's subfolder inside Scratch Submissions
+                    const query = encodeURIComponent(
+                        `name = '${studentEmail}' and '${MASTER_FOLDER_ID}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
+                    );
 
-                const fileName = userTitle.trim() || 'Scratch Project';
-
-                this.props.vm.saveProjectSb3().then(blob => {
-                    const metadata = {
-                        name: `${fileName}.sb3`,
-                        mimeType: 'application/x-scratch-project',
-                        parents: ['root']
-                    };
-
-                    const form = new FormData();
-                    form.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
-                    form.append('file', blob);
-
-                    fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-                        method: 'POST',
-                        headers: new Headers({'Authorization': `Bearer ${token}`}),
-                        body: form
+                    return fetch(`https://www.googleapis.com/drive/v3/files?q=${query}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
                     })
-                    .then(res => {
-                        if (res.ok) {
-                            alert(`Project "${fileName}" saved successfully to Google Drive!`);
-                        } else {
-                            alert('Error saving to Drive. Make sure Drive API permissions are active.');
+                    .then(res => res.json())
+                    .then(searchResult => {
+                        if (searchResult.files && searchResult.files.length > 0) {
+                            // Subfolder already exists, return its ID
+                            return searchResult.files[0].id;
                         }
+
+                        // 3. Create subfolder named after student's email if missing
+                        const folderMetadata = {
+                            name: studentEmail,
+                            mimeType: 'application/vnd.google-apps.folder',
+                            parents: [MASTER_FOLDER_ID]
+                        };
+
+                        return fetch('https://www.googleapis.com/drive/v3/files', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(folderMetadata)
+                        })
+                        .then(res => res.json())
+                        .then(newFolder => newFolder.id);
                     })
-                    .catch(err => {
-                        console.error('Drive upload error:', err);
-                        alert('Network error while saving to Google Drive.');
+                    .then(targetFolderId => {
+                        // 4. Prompt student for project title
+                        const defaultTitle = this.props.projectTitle || 'Scratch Project';
+                        const userTitle = prompt('Enter a name for your Scratch project:', defaultTitle);
+
+                        if (userTitle === null) return; // Student clicked Cancel
+
+                        const fileName = userTitle.trim() || 'Scratch Project';
+
+                        // 5. Save .sb3 file into student's email subfolder
+                        return this.props.vm.saveProjectSb3().then(blob => {
+                            const metadata = {
+                                name: `${fileName}.sb3`,
+                                mimeType: 'application/x-scratch-project',
+                                parents: [targetFolderId]
+                            };
+
+                            const form = new FormData();
+                            form.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
+                            form.append('file', blob);
+
+                            return fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                                method: 'POST',
+                                headers: new Headers({'Authorization': `Bearer ${token}`}),
+                                body: form
+                            });
+                        })
+                        .then(res => {
+                            if (res && res.ok) {
+                                alert(`Project "${fileName}" saved successfully to your folder (${studentEmail})!`);
+                            } else if (res) {
+                                alert('Error saving to Drive. Make sure you have access to the class folder.');
+                            }
+                        });
                     });
+                })
+                .catch(err => {
+                    console.error('Drive folder save error:', err);
+                    alert('Network or permission error while saving to Google Drive.');
                 });
             });
         };
