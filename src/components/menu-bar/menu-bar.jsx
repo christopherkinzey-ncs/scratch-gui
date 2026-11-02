@@ -326,23 +326,26 @@ class MenuBar extends React.Component {
 
             // Master Folder ID for "Scratch Submissions"
             const MASTER_FOLDER_ID = '1df1klgPC4GxBgUuIZ0SP6Uq2-BOPS1tv';
-
+            
             this.getGoogleToken((token) => {
                 if (!token) return;
                 window.gapi.load('picker', () => {
                     // Open Google Picker pre-filtered inside the Scratch Submissions folder
                     const view = new window.google.picker.DocsView()
                         .setParent(MASTER_FOLDER_ID)
+                        .setIncludeFolders(true)
+                        .setSelectFolderEnabled(false)
                         .setMimeTypes('application/x-scratch-project,application/octet-stream');
-
+                    
                     const picker = new window.google.picker.PickerBuilder()
                         .addView(view)
                         .setOAuthToken(token)
+                        .enableFeature(window.google.picker.Feature.SUPPORT_DRIVES)
                         .setCallback((data) => {
                             if (data.action === window.google.picker.Action.PICKED) {
                                 const fileId = data.docs[0].id;
 
-                                fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+                                fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&supportsAllDrives=true`, {
                                     headers: { 'Authorization': `Bearer ${token}` }
                                 })
                                 .then(res => res.arrayBuffer())
