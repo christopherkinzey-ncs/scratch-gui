@@ -346,7 +346,6 @@ class MenuBar extends React.Component {
                     })
                     .then(res => res.json())
                     .then(searchResult => {
-                        // Use student folder ID if found, otherwise default to master folder
                         let targetFolderId = MASTER_FOLDER_ID;
                         if (searchResult.files && searchResult.files.length > 0) {
                             targetFolderId = searchResult.files[0].id;
@@ -356,18 +355,18 @@ class MenuBar extends React.Component {
                 })
                 .then(targetFolderId => {
                     window.gapi.load('picker', () => {
-                        // Open Google Picker directly inside the student's personal subfolder
-                        const view = new window.google.picker.DocsView()
+                        // Create a view locked to the target folder, with navigation enabled
+                        const view = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS)
                             .setParent(targetFolderId)
                             .setIncludeFolders(true)
                             .setSelectFolderEnabled(false)
-                            .setEnableDrives(true)
                             .setMimeTypes('application/x-scratch-project,application/octet-stream');
 
                         const picker = new window.google.picker.PickerBuilder()
                             .addView(view)
                             .setOAuthToken(token)
                             .enableFeature(window.google.picker.Feature.SUPPORT_DRIVES)
+                            .enableFeature(window.google.picker.Feature.MINE_ONLY)
                             .setCallback((data) => {
                                 if (data.action === window.google.picker.Action.PICKED) {
                                     const fileId = data.docs[0].id;
