@@ -84,7 +84,6 @@ class GUI extends React.Component {
         }
         const {
             /* eslint-disable no-unused-vars */
-            assetHost,
             cloudHost,
             error,
             isError,
