@@ -35,6 +35,13 @@ const vmManagerHOC = function (WrappedComponent) {
                 this.props.vm.initialized = true;
                 this.props.vm.setLocale(this.props.locale, this.props.messages);
             }
+            // Attach asset hosts so Sprite and Sound libraries load properly from MIT CDN
+            if (this.props.assetHost) {
+                this.props.vm.setAssetHost(this.props.assetHost);
+            }
+            if (this.props.soundHost) {
+                this.props.vm.setSoundHost(this.props.soundHost);
+            }
             if (!this.props.isPlayerOnly && !this.props.isStarted) {
                 this.props.vm.start();
             }
