@@ -13,13 +13,17 @@ import {detectLocale} from './detect-locale';
 
 const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
 
+// Official static asset hosts for Sprites, Costumes, Backdrops, and Sounds
+const ASSET_HOST = 'https://assets.scratch.mit.edu';
+const SOUND_HOST = 'https://assets.scratch.mit.edu';
+
 /*
  * Higher Order Component to provide redux state. If an `intl` prop is provided
  * it will override the internal `intl` redux state
  * @param {React.Component} WrappedComponent - component to provide state for
  * @param {boolean} localesOnly - only provide the locale state, not everything
- *                      required by the GUI. Used to exclude excess state when
-                        only rendering modals, not the GUI.
+ *                         required by the GUI. Used to exclude excess state when
+ *                         only rendering modals, not the GUI.
  * @returns {React.Component} component with redux and intl state provided
  */
 const AppStateHOC = function (WrappedComponent, localesOnly) {
@@ -84,6 +88,28 @@ const AppStateHOC = function (WrappedComponent, localesOnly) {
                 enhancer
             );
         }
+
+        componentDidMount () {
+            if (localesOnly) return;
+
+            // Global click listener to resume Web Audio Context on first user interaction
+            const unlockAudio = () => {
+                const state = this.store.getState();
+                const vm = state.scratchGui && state.scratchGui.vm;
+                if (vm && vm.runtime && vm.runtime.audioEngine) {
+                    if (vm.runtime.audioEngine.audioContext && 
+                        vm.runtime.audioEngine.audioContext.state === 'suspended') {
+                        vm.runtime.audioEngine.audioContext.resume();
+                    }
+                }
+                document.removeEventListener('click', unlockAudio);
+                document.removeEventListener('keydown', unlockAudio);
+            };
+
+            document.addEventListener('click', unlockAudio);
+            document.addEventListener('keydown', unlockAudio);
+        }
+
         componentDidUpdate (prevProps) {
             if (localesOnly) return;
             if (prevProps.isPlayerOnly !== this.props.isPlayerOnly) {
@@ -104,6 +130,8 @@ const AppStateHOC = function (WrappedComponent, localesOnly) {
                 <Provider store={this.store}>
                     <ConnectedIntlProvider>
                         <WrappedComponent
+                            assetHost={ASSET_HOST}
+                            soundHost={SOUND_HOST}
                             {...componentProps}
                         />
                     </ConnectedIntlProvider>
