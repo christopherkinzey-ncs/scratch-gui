@@ -32,6 +32,8 @@ const baseConfig = new ScratchWebpackConfigBuilder(
     .merge({
         output: {
             assetModuleFilename: 'static/assets/[name].[hash][ext][query]',
+            filename: 'chunks/[name].js',
+            chunkFilename: 'chunks/[name].js',
             library: {
                 name: 'GUI',
                 type: 'umd2'
