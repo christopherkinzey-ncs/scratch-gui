@@ -25,6 +25,8 @@ const baseConfig = new ScratchWebpackConfigBuilder(
             assetModuleFilename: 'static/assets/[name].[hash][ext][query]',
             filename: '[name].js',
             chunkFilename: 'chunks/[name].js',
+            workerChunkLoading: false,
+            globalObject: 'this',
             library: {
                 name: 'GUI',
                 type: 'umd2'
