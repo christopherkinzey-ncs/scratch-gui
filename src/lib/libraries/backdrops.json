@@ -165,7 +165,7 @@
         "rotationCenterY": 180
     },
     {
-        "name": "Blue Sky 2 ",
+        "name": "Blue Sky 2",
         "tags": [
             "outdoors",
             "flying"
@@ -323,9 +323,9 @@
         "name": "Desert",
         "tags": [
             "desert",
-            " landscape",
-            " outdoors",
-            " cacti"
+            "landscape",
+            "outdoors",
+            "cacti"
         ],
         "assetId": "d98a9526a34890cf4bad11b5409eae2a",
         "bitmapResolution": 2,
@@ -407,8 +407,8 @@
         "name": "Garden-rock",
         "tags": [
             "outdoors",
-            " garden",
-            " park"
+            "garden",
+            "park"
         ],
         "assetId": "4f66053598bea0905e1559ab9d5a6e31",
         "bitmapResolution": 2,
