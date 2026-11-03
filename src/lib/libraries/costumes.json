@@ -8356,7 +8356,7 @@
         "name": "Prince",
         "tags": [
             "people",
-            "☥",
+            "music",
             "fantasy"
         ],
         "assetId": "ada9c5ce11245c467c780bceb665c42d",
@@ -9233,7 +9233,8 @@
     {
         "name": "Scarf-c",
         "tags": [
-            "fashionclothing",
+            "fashion",
+            "clothing",
             "scarf",
             "purple"
         ],
@@ -9661,7 +9662,7 @@
         "rotationCenterY": 75
     },
     {
-        "name": "Starfish-b ",
+        "name": "Starfish-b",
         "tags": [
             "animals",
             "echinodermata",
@@ -9806,8 +9807,8 @@
         "name": "Tabla-a",
         "tags": [
             "drums",
-            " music",
-            " ericr"
+            "music",
+            "ericr"
         ],
         "assetId": "af071d9d714c5c622e2bb07133698ce3",
         "bitmapResolution": 1,
