@@ -75,6 +75,7 @@ const baseConfig = new ScratchWebpackConfigBuilder(
             {
                 context: 'node_modules/scratch-vm/dist/web',
                 from: '*.{js,js.map}',
+                to: 'chunks',
                 noErrorOnMissing: true
             }
         ]
