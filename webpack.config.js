@@ -26,7 +26,7 @@ const baseConfig = new ScratchWebpackConfigBuilder(
         rootPath: path.resolve(__dirname),
         enableReact: true,
         shouldSplitChunks: false,
-        publicPath: 'auto'
+        publicPath: ''
     })
     .setTarget('browserslist')
     .merge({
@@ -74,7 +74,7 @@ const baseConfig = new ScratchWebpackConfigBuilder(
             },
             {
                 context: 'node_modules/scratch-vm/dist/web',
-                from: 'extension-worker.{js,js.map}',
+                from: '*.{js,js.map}',
                 noErrorOnMissing: true
             }
         ]
