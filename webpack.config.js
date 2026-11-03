@@ -64,12 +64,6 @@ const baseConfig = new ScratchWebpackConfigBuilder(
                 from: 'src/lib/themes/high-contrast/blocks-media',
                 to: 'static/blocks-media/high-contrast',
                 force: true
-            },
-            {
-                context: 'node_modules/scratch-vm/dist/web',
-                from: '*',
-                to: 'chunks',
-                noErrorOnMissing: true
             }
         ]
     }));
