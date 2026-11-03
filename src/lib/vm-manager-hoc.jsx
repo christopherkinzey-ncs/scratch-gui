@@ -37,13 +37,18 @@ const vmManagerHOC = function (WrappedComponent) {
             }
             // Attach asset hosts so Sprite and Sound libraries load properly from MIT CDN
             if (this.props.assetHost) {
-                this.props.vm.setAssetHost(this.props.assetHost);
+                if (typeof this.props.vm.setAssetHost === 'function') {
+                    this.props.vm.setAssetHost(this.props.assetHost);
+                } else if (this.props.vm.runtime && this.props.vm.runtime.storage) {
+                    this.props.vm.runtime.storage.setAssetHost(this.props.assetHost);
+                }
             }
             if (this.props.soundHost) {
-                this.props.vm.setSoundHost(this.props.soundHost);
-            }
-            if (!this.props.isPlayerOnly && !this.props.isStarted) {
-                this.props.vm.start();
+                if (typeof this.props.vm.setSoundHost === 'function') {
+                    this.props.vm.setSoundHost(this.props.soundHost);
+                } else if (this.props.vm.runtime && this.props.vm.runtime.storage) {
+                    this.props.vm.runtime.storage.setAssetHost(this.props.soundHost);
+                }
             }
         }
         componentDidUpdate (prevProps) {
