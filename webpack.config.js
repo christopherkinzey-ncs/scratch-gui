@@ -24,8 +24,8 @@ const baseConfig = new ScratchWebpackConfigBuilder(
         output: {
             assetModuleFilename: 'static/assets/[name].[hash][ext][query]',
             filename: '[name].js',
-            chunkFilename: 'chunks/[name].js',
-            workerChunkLoading: false,
+            chunkFilename: 'chunks/[name].[chunkhash].js',
+            publicPath: '/',
             globalObject: 'this',
             library: {
                 name: 'GUI',
