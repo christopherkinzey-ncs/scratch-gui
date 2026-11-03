@@ -35,6 +35,13 @@ const vmManagerHOC = function (WrappedComponent) {
                 this.props.vm.initialized = true;
                 this.props.vm.setLocale(this.props.locale, this.props.messages);
             }
+
+            // Explicitly route web worker loading to the static unhashed copy in /chunks/
+            if (typeof window !== 'undefined') {
+                window.Scratch = window.Scratch || {};
+                window.Scratch.fetchWorkerPath = './chunks/fetch-worker.js';
+            }
+
             // Attach asset hosts so Sprite and Sound libraries load properly from MIT CDN
             if (this.props.assetHost) {
                 if (typeof this.props.vm.setAssetHost === 'function') {
