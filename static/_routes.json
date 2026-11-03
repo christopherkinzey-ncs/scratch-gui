@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "include": ["/*"],
+  "include": [
+    "/*"
+  ],
   "exclude": [
-    "/static/*",
     "/chunks/*",
+    "/static/*",
     "/*.js",
     "/*.css",
-    "/*.json",
-    "/*.svg",
-    "/*.png"
+    "/*.json"
   ]
 }
