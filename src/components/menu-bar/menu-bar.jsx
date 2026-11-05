@@ -304,7 +304,9 @@ class MenuBar extends React.Component {
         if (window.google && window.google.accounts && window.google.accounts.oauth2) {
             const client = window.google.accounts.oauth2.initTokenClient({
                 client_id: '616910740159-olchtcld2rmak1ejrf216jf9tc51fg6q.apps.googleusercontent.com',
-                scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email',
+                // drive.readonly lets the picker open .sb3 files that were uploaded to Drive outside this app
+                scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly ' +
+                    'https://www.googleapis.com/auth/userinfo.email',
                 callback: (response) => {
                     if (response.error) {
                         console.error('OAuth token error:', response);
