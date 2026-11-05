@@ -31,6 +31,34 @@ const timingSafeEqual = (a, b) => {
     return diff === 0;
 };
 
+const getCookie = (request, name) => {
+    const cookies = request.headers.get('Cookie') || '';
+    const match = cookies.split(';')
+        .map(c => c.trim())
+        .find(c => c.startsWith(`${name}=`));
+    return match ? match.slice(name.length + 1) : null;
+};
+
+// OAuth `state` protection against login CSRF: the value sent to Google must come back unchanged
+// and match a short-lived cookie that only the browser that started the login holds.
+export const STATE_COOKIE_NAME = 'scratch_oauth_state';
+const STATE_SECONDS = 10 * 60;
+
+// The cookie is only needed by the callback, so it is scoped to that path.
+const stateCookie = (value, maxAge) =>
+    `${STATE_COOKIE_NAME}=${value}; Path=/auth/callback; Secure; HttpOnly; SameSite=Lax; Max-Age=${maxAge}`;
+
+export const createOAuthState = () => toBase64Url(crypto.getRandomValues(new Uint8Array(32)));
+
+export const createOAuthStateCookie = state => stateCookie(state, STATE_SECONDS);
+
+export const clearOAuthStateCookie = () => stateCookie('', 0);
+
+export const verifyOAuthState = (request, state) => {
+    const expected = getCookie(request, STATE_COOKIE_NAME);
+    return Boolean(state) && Boolean(expected) && timingSafeEqual(state, expected);
+};
+
 export const createSessionCookie = async (secret, email, name = '') => {
     const expires = Math.floor(Date.now() / 1000) + SESSION_SECONDS;
     const payload = toBase64Url(encoder.encode(JSON.stringify({email, name, exp: expires})));
@@ -42,13 +70,10 @@ export const createSessionCookie = async (secret, email, name = '') => {
 // `name` is empty for sessions created before names were stored.
 export const readSession = async (secret, request) => {
     if (!secret) return null;
-    const cookies = request.headers.get('Cookie') || '';
-    const match = cookies.split(';')
-        .map(c => c.trim())
-        .find(c => c.startsWith(`${COOKIE_NAME}=`));
-    if (!match) return null;
+    const cookie = getCookie(request, COOKIE_NAME);
+    if (!cookie) return null;
 
-    const [payload, signature] = match.slice(COOKIE_NAME.length + 1).split('.');
+    const [payload, signature] = cookie.split('.');
     if (!payload || !signature) return null;
     if (!timingSafeEqual(signature, await sign(secret, payload))) return null;
 

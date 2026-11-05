@@ -1,4 +1,4 @@
-import {createSessionCookie} from '../_lib/session.js';
+import {clearOAuthStateCookie, createSessionCookie, verifyOAuthState} from '../_lib/session.js';
 
 export async function onRequest (context) {
     const {request, env} = context;
@@ -7,6 +7,14 @@ export async function onRequest (context) {
 
     if (!code) {
         return new Response('Authentication failed: Missing authorization code', {status: 400});
+    }
+
+    // Reject callbacks that weren't started by this browser (login CSRF)
+    if (!verifyOAuthState(request, url.searchParams.get('state'))) {
+        return new Response('Authentication failed: Login session expired or invalid. Return to the site and try again.', {
+            status: 400,
+            headers: {'Set-Cookie': clearOAuthStateCookie()}
+        });
     }
 
     // Exchange OAuth authorization code for Google access tokens
@@ -46,11 +54,9 @@ export async function onRequest (context) {
         });
     }
 
-    return new Response(null, {
-        status: 302,
-        headers: {
-            Location: '/',
-            'Set-Cookie': await createSessionCookie(env.SESSION_SECRET, email, profile.name || '')
-        }
-    });
+    const headers = new Headers({Location: '/'});
+    headers.append('Set-Cookie', await createSessionCookie(env.SESSION_SECRET, email, profile.name || ''));
+    headers.append('Set-Cookie', clearOAuthStateCookie());
+
+    return new Response(null, {status: 302, headers});
 }

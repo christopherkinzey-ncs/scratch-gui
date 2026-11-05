@@ -12,6 +12,11 @@ const commonHtmlWebpackPluginOptions = {
     gtm_env_auth: process.env.GTM_ENV_AUTH || ''
 };
 
+// Google Drive save/load settings. Override at build time with DRIVE_CLIENT_ID / DRIVE_MASTER_FOLDER_ID;
+// the defaults are the school's current OAuth client and "Scratch Submissions" folder.
+const DEFAULT_DRIVE_CLIENT_ID = '616910740159-olchtcld2rmak1ejrf216jf9tc51fg6q.apps.googleusercontent.com';
+const DEFAULT_DRIVE_MASTER_FOLDER_ID = '1df1klgPC4GxBgUuIZ0SP6Uq2-BOPS1tv';
+
 const baseConfig = new ScratchWebpackConfigBuilder(
     {
         rootPath: path.resolve(__dirname),
@@ -46,6 +51,10 @@ const baseConfig = new ScratchWebpackConfigBuilder(
     })
     .addPlugin(new webpack.DefinePlugin({
         'process.env.DEBUG': Boolean(process.env.DEBUG),
+        'process.env.DRIVE_CLIENT_ID': JSON.stringify(process.env.DRIVE_CLIENT_ID || DEFAULT_DRIVE_CLIENT_ID),
+        'process.env.DRIVE_MASTER_FOLDER_ID': JSON.stringify(
+            process.env.DRIVE_MASTER_FOLDER_ID || DEFAULT_DRIVE_MASTER_FOLDER_ID
+        ),
         'process.env.GA_ID': `"${process.env.GA_ID || 'UA-000000-01'}"`,
         'process.env.GTM_ENV_AUTH': `"${process.env.GTM_ENV_AUTH || ''}"`,
         'process.env.GTM_ID': process.env.GTM_ID ? `"${process.env.GTM_ID}"` : null
@@ -152,7 +161,15 @@ const buildConfig = baseConfig.clone()
         patterns: [
             {
                 from: 'static',
-                to: 'static'
+                to: 'static',
+                globOptions: {
+                    ignore: ['**/_routes.json']
+                }
+            },
+            {
+                // Cloudflare Pages only reads _routes.json from the root of the build output
+                from: 'static/_routes.json',
+                to: '_routes.json'
             },
             {
                 from: 'extensions/**',

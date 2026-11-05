@@ -1,4 +1,4 @@
-import {readSession} from './_lib/session.js';
+import {createOAuthState, createOAuthStateCookie, readSession} from './_lib/session.js';
 
 export async function onRequest (context) {
     const {request, env} = context;
@@ -17,14 +17,24 @@ export async function onRequest (context) {
         return context.next();
     }
 
-    // Redirect unauthenticated users to Google OAuth login
+    // Redirect unauthenticated users to Google OAuth login. `state` is also stored in a cookie so the
+    // callback can confirm the login was started by this browser.
+    const state = createOAuthState();
     const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({
         client_id: env.GOOGLE_CLIENT_ID,
         redirect_uri: `${url.origin}/auth/callback`,
         response_type: 'code',
         scope: 'email profile',
-        hd: env.SCHOOL_DOMAIN
+        hd: env.SCHOOL_DOMAIN,
+        state
     })}`;
 
-    return Response.redirect(googleAuthUrl, 302);
+    return new Response(null, {
+        status: 302,
+        headers: {
+            Location: googleAuthUrl,
+            'Set-Cookie': createOAuthStateCookie(state),
+            'Cache-Control': 'no-store'
+        }
+    });
 }

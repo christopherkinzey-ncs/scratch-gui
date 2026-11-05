@@ -73,6 +73,13 @@ import {
 } from '../../reducers/menus';
 
 import collectMetadata from '../../lib/collect-metadata';
+import {
+    DRIVE_CLIENT_ID,
+    DRIVE_FOLDER_MIME_TYPE,
+    DRIVE_MASTER_FOLDER_ID,
+    DRIVE_SCOPES,
+    studentFolderQuery
+} from '../../lib/google-drive';
 
 import styles from './menu-bar.css';
 
@@ -314,10 +321,8 @@ class MenuBar extends React.Component {
     getGoogleToken (callback) {
         if (window.google && window.google.accounts && window.google.accounts.oauth2) {
             const client = window.google.accounts.oauth2.initTokenClient({
-                client_id: '616910740159-olchtcld2rmak1ejrf216jf9tc51fg6q.apps.googleusercontent.com',
-                // drive.readonly lets the picker open .sb3 files that were uploaded to Drive outside this app
-                scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly ' +
-                    'https://www.googleapis.com/auth/userinfo.email',
+                client_id: DRIVE_CLIENT_ID,
+                scope: DRIVE_SCOPES,
                 callback: (response) => {
                     if (response.error) {
                         console.error('OAuth token error:', response);
@@ -337,9 +342,6 @@ class MenuBar extends React.Component {
         return () => {
             this.props.onRequestCloseFile();
 
-            // Master Folder ID for "Scratch Submissions"
-            const MASTER_FOLDER_ID = '1df1klgPC4GxBgUuIZ0SP6Uq2-BOPS1tv';
-
             this.getGoogleToken((token) => {
                 if (!token) return;
 
@@ -352,14 +354,14 @@ class MenuBar extends React.Component {
                     const studentEmail = userinfo.email || '';
 
                     // 2. Search for student's subfolder inside Scratch Submissions
-                    const qStr = `'${MASTER_FOLDER_ID}' in parents and name = '${studentEmail}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+                    const qStr = studentFolderQuery(DRIVE_MASTER_FOLDER_ID, studentEmail);
 
                     return fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(qStr)}&supportsAllDrives=true&includeItemsFromAllDrives=true`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     })
                     .then(res => res.json())
                     .then(searchResult => {
-                        let targetFolderId = MASTER_FOLDER_ID;
+                        let targetFolderId = DRIVE_MASTER_FOLDER_ID;
                         if (searchResult.files && searchResult.files.length > 0) {
                             targetFolderId = searchResult.files[0].id;
                         }
@@ -378,7 +380,7 @@ class MenuBar extends React.Component {
                         // View 2: Master folder view for teachers to browse all student subfolders
                         const masterView = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS)
                             .setLabel('Scratch Submissions')
-                            .setParent(MASTER_FOLDER_ID)
+                            .setParent(DRIVE_MASTER_FOLDER_ID)
                             .setIncludeFolders(true)
                             .setSelectFolderEnabled(false);
 
@@ -423,9 +425,6 @@ class MenuBar extends React.Component {
         return () => {
             this.props.onRequestCloseFile();
 
-            // Master Folder ID for "Scratch Submissions"
-            const MASTER_FOLDER_ID = '1df1klgPC4GxBgUuIZ0SP6Uq2-BOPS1tv';
-
             this.getGoogleToken((token) => {
                 if (!token) return;
 
@@ -438,9 +437,7 @@ class MenuBar extends React.Component {
                     const studentEmail = userinfo.email || 'unknown_student';
 
                     // 2. Search for student's subfolder inside Scratch Submissions
-                    const query = encodeURIComponent(
-                        `name = '${studentEmail}' and '${MASTER_FOLDER_ID}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`
-                    );
+                    const query = encodeURIComponent(studentFolderQuery(DRIVE_MASTER_FOLDER_ID, studentEmail));
 
                     return fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&supportsAllDrives=true&includeItemsFromAllDrives=true`, {
                         headers: { 'Authorization': `Bearer ${token}` }
@@ -455,8 +452,8 @@ class MenuBar extends React.Component {
                         // 3. Create subfolder named after student's email if missing
                         const folderMetadata = {
                             name: studentEmail,
-                            mimeType: 'application/vnd.google-apps.folder',
-                            parents: [MASTER_FOLDER_ID]
+                            mimeType: DRIVE_FOLDER_MIME_TYPE,
+                            parents: [DRIVE_MASTER_FOLDER_ID]
                         };
 
                         return fetch('https://www.googleapis.com/drive/v3/files?supportsAllDrives=true', {
