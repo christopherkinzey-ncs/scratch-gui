@@ -64,6 +64,18 @@ const baseConfig = new ScratchWebpackConfigBuilder(
                 from: 'src/lib/themes/high-contrast/blocks-media',
                 to: 'static/blocks-media/high-contrast',
                 force: true
+            },
+            {
+                // scratch-vm loads extensions in a worker from this file at the site root
+                context: 'node_modules/scratch-vm/dist/web',
+                from: 'extension-worker.{js,js.map}',
+                noErrorOnMissing: true
+            },
+            {
+                // scratch-storage's prebuilt bundle loads its asset-fetching worker from /chunks/fetch-worker.<hash>.js
+                context: 'node_modules/scratch-storage/dist/web/chunks',
+                from: 'fetch-worker.*.js{,.map}',
+                to: 'chunks'
             }
         ]
     }));

@@ -27,10 +27,6 @@
     </script>
     <script src="https://apis.google.com/js/api.js" onload="initGoogleAPI()"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script>
-      window.Scratch = window.Scratch || {};
-      window.Scratch.fetchWorkerPath = './chunks/fetch-worker.js';
-    </script>
   </head>
   <body>
     <% if (htmlWebpackPlugin.options.gtm_id) { %>
