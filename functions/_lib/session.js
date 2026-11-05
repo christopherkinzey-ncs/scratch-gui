@@ -31,14 +31,15 @@ const timingSafeEqual = (a, b) => {
     return diff === 0;
 };
 
-export const createSessionCookie = async (secret, email) => {
+export const createSessionCookie = async (secret, email, name = '') => {
     const expires = Math.floor(Date.now() / 1000) + SESSION_SECONDS;
-    const payload = toBase64Url(encoder.encode(JSON.stringify({email, exp: expires})));
+    const payload = toBase64Url(encoder.encode(JSON.stringify({email, name, exp: expires})));
     const signature = await sign(secret, payload);
     return `${COOKIE_NAME}=${payload}.${signature}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=${SESSION_SECONDS}`;
 };
 
-// Returns the signed-in email, or null if the cookie is missing, forged, or expired.
+// Returns {email, name} for the signed-in user, or null if the cookie is missing, forged, or expired.
+// `name` is empty for sessions created before names were stored.
 export const readSession = async (secret, request) => {
     if (!secret) return null;
     const cookies = request.headers.get('Cookie') || '';
@@ -55,7 +56,7 @@ export const readSession = async (secret, request) => {
         const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
         const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(base64), c => c.charCodeAt(0))));
         if (typeof data.exp !== 'number' || data.exp < Date.now() / 1000) return null;
-        return data.email;
+        return {email: data.email, name: data.name || ''};
     } catch (e) {
         return null;
     }

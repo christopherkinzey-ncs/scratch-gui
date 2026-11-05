@@ -50,7 +50,7 @@ export async function onRequest (context) {
         status: 302,
         headers: {
             Location: '/',
-            'Set-Cookie': await createSessionCookie(env.SESSION_SECRET, email)
+            'Set-Cookie': await createSessionCookie(env.SESSION_SECRET, email, profile.name || '')
         }
     });
 }

@@ -192,11 +192,22 @@ class MenuBar extends React.Component {
             'handleSaveToGoogleDrive',
             'restoreOptionMessage'
         ]);
+        this.state = {accountName: ''};
     }
     componentDidMount () {
         document.addEventListener('keydown', this.handleKeyPress);
+        // Show the signed-in student's name (endpoint only exists on the Cloudflare deployment)
+        fetch('/auth/me', {credentials: 'same-origin'})
+            .then(res => (res.ok ? res.json() : null))
+            .then(user => {
+                if (user && !this.unmounted) {
+                    this.setState({accountName: user.name || user.email || ''});
+                }
+            })
+            .catch(() => {});
     }
     componentWillUnmount () {
+        this.unmounted = true;
         document.removeEventListener('keydown', this.handleKeyPress);
     }
     handleClickNew () {
@@ -1014,47 +1025,21 @@ class MenuBar extends React.Component {
                     ) : (
                         // ******** no login session is available, so don't show login stuff
                         <React.Fragment>
-                            {this.props.showComingSoon ? (
-                                <React.Fragment>
-                                    <MenuBarItemTooltip id="mystuff">
-                                        <div
-                                            className={classNames(
-                                                styles.menuBarItem,
-                                                styles.hoverable,
-                                                styles.mystuffButton
-                                            )}
-                                        >
-                                            <img
-                                                className={styles.mystuffIcon}
-                                                src={mystuffIcon}
-                                            />
-                                        </div>
-                                    </MenuBarItemTooltip>
-                                    <MenuBarItemTooltip
-                                        id="account-nav"
-                                        place={this.props.isRtl ? 'right' : 'left'}
-                                    >
-                                        <div
-                                            className={classNames(
-                                                styles.menuBarItem,
-                                                styles.hoverable,
-                                                styles.accountNavMenu
-                                            )}
-                                        >
-                                            <img
-                                                className={styles.profileIcon}
-                                                src={profileIcon}
-                                            />
-                                            <span>
-                                                {'scratch-cat'}
-                                            </span>
-                                            <img
-                                                className={styles.dropdownCaretIcon}
-                                                src={dropdownCaret}
-                                            />
-                                        </div>
-                                    </MenuBarItemTooltip>
-                                </React.Fragment>
+                            {this.state.accountName ? (
+                                <div
+                                    className={classNames(
+                                        styles.menuBarItem,
+                                        styles.accountNavMenu
+                                    )}
+                                >
+                                    <img
+                                        className={styles.profileIcon}
+                                        src={profileIcon}
+                                    />
+                                    <span>
+                                        {this.state.accountName}
+                                    </span>
+                                </div>
                             ) : []}
                         </React.Fragment>
                     )}
