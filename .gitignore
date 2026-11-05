@@ -26,3 +26,7 @@ npm-*
 
 # for act
 .secrets
+
+# Local Cloudflare Pages secrets (wrangler pages dev)
+.dev.vars
+.wrangler
