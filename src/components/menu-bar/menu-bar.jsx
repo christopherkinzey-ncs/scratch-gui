@@ -328,9 +328,6 @@ class MenuBar extends React.Component {
 
             // Master Folder ID for "Scratch Submissions"
             const MASTER_FOLDER_ID = '1df1klgPC4GxBgUuIZ0SP6Uq2-BOPS1tv';
-            // Projects saved by this app use the custom type; .sb3 files uploaded from a computer are detected as zip
-            const SB3_MIME_TYPES = 'application/x-scratch-project,application/octet-stream,' +
-                'application/zip,application/x-zip-compressed';
 
             this.getGoogleToken((token) => {
                 if (!token) return;
@@ -364,16 +361,15 @@ class MenuBar extends React.Component {
                         const studentView = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS)
                             .setLabel('My Folder')
                             .setParent(targetFolderId)
-                            .setIncludeFolders(false)
-                            .setMimeTypes(SB3_MIME_TYPES);
+                            // No MIME filter: Drive labels uploaded .sb3 files with varying types (zip, octet-stream, ...)
+                            .setIncludeFolders(false);
 
                         // View 2: Master folder view for teachers to browse all student subfolders
                         const masterView = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS)
                             .setLabel('Scratch Submissions')
                             .setParent(MASTER_FOLDER_ID)
                             .setIncludeFolders(true)
-                            .setSelectFolderEnabled(false)
-                            .setMimeTypes(SB3_MIME_TYPES);
+                            .setSelectFolderEnabled(false);
 
                         const builder = new window.google.picker.PickerBuilder()
                             .addView(studentView)
