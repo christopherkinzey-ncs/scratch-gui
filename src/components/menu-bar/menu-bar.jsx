@@ -197,12 +197,16 @@ class MenuBar extends React.Component {
             'getSaveToComputerHandler',
             'handleLoadFromGoogleDrive',
             'handleSaveToGoogleDrive',
+            'handleProjectLoaded',
+            'handleLoadFromSharedDrive',
+            'handleSaveToSharedDrive',
             'restoreOptionMessage'
         ]);
         this.state = {accountName: ''};
     }
     componentDidMount () {
         document.addEventListener('keydown', this.handleKeyPress);
+        this.props.vm.on('PROJECT_LOADED', this.handleProjectLoaded);
         // Show the signed-in student's name (endpoint only exists on the Cloudflare deployment)
         fetch('/auth/me', {credentials: 'same-origin'})
             .then(res => (res.ok ? res.json() : null))
@@ -215,7 +219,13 @@ class MenuBar extends React.Component {
     }
     componentWillUnmount () {
         this.unmounted = true;
+        this.props.vm.removeListener('PROJECT_LOADED', this.handleProjectLoaded);
         document.removeEventListener('keydown', this.handleKeyPress);
+    }
+    handleProjectLoaded () {
+        // Any newly loaded project (New, from computer, Shared Drive...) is no longer the remembered Drive file.
+        // The Google Drive load handler sets this again after its own load completes.
+        this.googleDriveFile = null;
     }
     handleClickNew () {
         // if the project is dirty, and user owns the project, we will autosave.
@@ -338,7 +348,7 @@ class MenuBar extends React.Component {
         }
     }
 
-    handleLoadFromGoogleDrive () {
+    handleLoadFromSharedDrive () {
         return () => {
             this.props.onRequestCloseFile();
 
@@ -404,7 +414,7 @@ class MenuBar extends React.Component {
                                     })
                                     .catch(err => {
                                         console.error('Drive load error:', err);
-                                        alert('Error downloading project from Google Drive.');
+                                        alert('Error downloading project from Shared Drive.');
                                     });
                                 }
                             });
@@ -415,13 +425,13 @@ class MenuBar extends React.Component {
                 })
                 .catch(err => {
                     console.error('Drive picker initialization error:', err);
-                    alert('Could not open Google Drive picker.');
+                    alert('Could not open Shared Drive picker.');
                 });
             });
         };
     }
     
-    handleSaveToGoogleDrive () {
+    handleSaveToSharedDrive () {
         return () => {
             this.props.onRequestCloseFile();
 
@@ -498,15 +508,126 @@ class MenuBar extends React.Component {
                             if (res && res.ok) {
                                 alert(`Project "${fileName}" saved successfully to your folder (${studentEmail})!`);
                             } else if (res) {
-                                alert('Error saving to Drive. Make sure you have access to the class folder.');
+                                alert('Error saving to Shared Drive. Make sure you have access to the class folder.');
                             }
                         });
                     });
                 })
                 .catch(err => {
                     console.error('Drive folder save error:', err);
-                    alert('Network or permission error while saving to Google Drive.');
+                    alert('Network or permission error while saving to Shared Drive.');
                 });
+            });
+        };
+    }
+    handleLoadFromGoogleDrive () {
+        return () => {
+            this.props.onRequestCloseFile();
+
+            this.getGoogleToken(token => {
+                if (!token) return;
+
+                window.gapi.load('picker', () => {
+                    // Browse the user's own Drive; folders stay visible so they can navigate.
+                    const view = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS)
+                        .setIncludeFolders(true)
+                        .setSelectFolderEnabled(false);
+
+                    const picker = new window.google.picker.PickerBuilder()
+                        .addView(view)
+                        .setOAuthToken(token)
+                        .setCallback(data => {
+                            if (data.action !== window.google.picker.Action.PICKED) return;
+
+                            const pickedFile = data.docs[0];
+
+                            fetch(`https://www.googleapis.com/drive/v3/files/${pickedFile.id}?alt=media`, {
+                                headers: {Authorization: `Bearer ${token}`}
+                            })
+                                .then(res => {
+                                    if (!res.ok) throw new Error(`Drive download failed: ${res.status}`);
+                                    return res.arrayBuffer();
+                                })
+                                .then(buffer => this.props.vm.loadProject(buffer))
+                                .then(() => {
+                                    // Remember the file so a later save can overwrite it.
+                                    this.googleDriveFile = {id: pickedFile.id, name: pickedFile.name};
+                                    alert('Project loaded successfully!');
+                                })
+                                .catch(err => {
+                                    console.error('Google Drive load error:', err);
+                                    alert('Error downloading project from Google Drive.');
+                                });
+                        })
+                        .build();
+                    picker.setVisible(true);
+                });
+            });
+        };
+    }
+
+    handleSaveToGoogleDrive () {
+        return () => {
+            this.props.onRequestCloseFile();
+
+            this.getGoogleToken(token => {
+                if (!token) return;
+
+                const remembered = this.googleDriveFile;
+                const defaultTitle = remembered ?
+                    remembered.name.replace(/\.sb3$/i, '') :
+                    (this.props.projectTitle || 'Scratch Project');
+                const userTitle = prompt('Enter a name for your Scratch project:', defaultTitle);
+                if (userTitle === null) return; // Clicked Cancel
+
+                const fileName = userTitle.trim() || 'Scratch Project';
+                const targetName = `${fileName}.sb3`;
+
+                // Overwrite only when saving back under the same name as the file that was opened or last saved.
+                const existingId = remembered && remembered.name === targetName ? remembered.id : null;
+
+                const upload = (blob, fileId) => {
+                    // No parents in the metadata, so a new file lands in the root of My Drive.
+                    const metadata = {
+                        name: targetName,
+                        mimeType: 'application/x-scratch-project'
+                    };
+
+                    const form = new FormData();
+                    form.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
+                    form.append('file', blob);
+
+                    const url = fileId ?
+                        `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart` :
+                        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+                    return fetch(url, {
+                        method: fileId ? 'PATCH' : 'POST',
+                        headers: {Authorization: `Bearer ${token}`},
+                        body: form
+                    });
+                };
+
+                this.props.vm.saveProjectSb3().then(blob => upload(blob, existingId).then(res => {
+                    // The remembered file may have been deleted since; fall back to creating a new one.
+                    if (existingId && res.status === 404) return upload(blob, null);
+                    return res;
+                }))
+                    .then(res => {
+                        if (!res.ok) {
+                            alert('Error saving to Google Drive.');
+                            return null;
+                        }
+                        return res.json().then(file => {
+                            this.googleDriveFile = {id: file.id, name: targetName};
+                            alert(existingId && file.id === existingId ?
+                                `Project "${fileName}" updated in your Google Drive!` :
+                                `Project "${fileName}" saved to your Google Drive!`);
+                        });
+                    })
+                    .catch(err => {
+                        console.error('Google Drive save error:', err);
+                        alert('Network or permission error while saving to Google Drive.');
+                    });
             });
         };
     }
@@ -717,8 +838,8 @@ class MenuBar extends React.Component {
                                         >
                                             <FormattedMessage
                                                 defaultMessage="Load from Google Drive"
-                                                description="Menu bar item for loading project directly from Google Drive"
-                                                id="gui.menuBar.loadFromDrive"
+                                                description="Menu bar item for loading a project from the user's own Google Drive"
+                                                id="gui.menuBar.loadFromGoogleDrive"
                                             />
                                         </MenuItem>
                                         <MenuItem
@@ -726,8 +847,28 @@ class MenuBar extends React.Component {
                                         >
                                             <FormattedMessage
                                                 defaultMessage="Save to Google Drive"
-                                                description="Menu bar item for saving project directly to Google Drive"
-                                                id="gui.menuBar.saveToDrive"
+                                                description="Menu bar item for saving a project to the user's own Google Drive"
+                                                id="gui.menuBar.saveToGoogleDrive"
+                                            />
+                                        </MenuItem>
+                                    </MenuSection>
+                                    <MenuSection>
+                                        <MenuItem
+                                            onClick={this.handleLoadFromSharedDrive()}
+                                        >
+                                            <FormattedMessage
+                                                defaultMessage="Load from Shared Drive"
+                                                description="Menu bar item for loading project directly from the Shared Drive"
+                                                id="gui.menuBar.loadFromSharedDrive"
+                                            />
+                                        </MenuItem>
+                                        <MenuItem
+                                            onClick={this.handleSaveToSharedDrive()}
+                                        >
+                                            <FormattedMessage
+                                                defaultMessage="Save to Shared Drive"
+                                                description="Menu bar item for saving project directly to the Shared Drive"
+                                                id="gui.menuBar.saveToSharedDrive"
                                             />
                                         </MenuItem>
                                     </MenuSection>

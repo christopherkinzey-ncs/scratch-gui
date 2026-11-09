@@ -6,7 +6,7 @@ This repository is a fork of the open-source `scratchfoundation/scratch-gui`, de
 
 1. **Access gate.** Only users who sign in with a verified Google account on the school's domain can load the site.
 2. **Identity display.** The menu bar shows the signed-in user's name.
-3. **Google Drive storage.** The File menu has "Save to Google Drive" and "Load from Google Drive". Each student gets a personal subfolder inside a shared "Scratch Submissions" folder, and teachers can browse all of them.
+3. **Google Drive and Shared Drive storage.** The File menu has "Save to Google Drive" and "Load from Google Drive", which use the signed-in user's own My Drive (the file is saved to the root of My Drive, and loading opens a Picker over their Drive). It also has "Save to Shared Drive" and "Load from Shared Drive". Each student gets a personal subfolder inside a shared "Scratch Submissions" folder, and teachers can browse all of them.
 
 The Scratch editor itself (blocks, VM, renderer and so on) is unchanged. The additions are:
 
@@ -104,7 +104,7 @@ Changing `SESSION_SECRET` invalidates every existing session. Sessions can't be 
 
 In `componentDidMount`, the component calls `fetch('/auth/me', {credentials: 'same-origin'})`. On success it stores `user.name || user.email` in `this.state.accountName`, and the render shows it in the menu bar. Failures are swallowed on purpose, so local dev (`npm start`), where `/auth/me` doesn't exist, shows no name and no error. An `unmounted` flag prevents setting state after unmount.
 
-### 4.2 Google Drive integration (`menu-bar.jsx`)
+### 4.2 Shared Drive integration (`menu-bar.jsx`)
 
 Google scripts are loaded in `src/playground/index.ejs`: `apis.google.com/js/api.js` (gapi, used for Picker) and `accounts.google.com/gsi/client` (Identity Services).
 
@@ -121,7 +121,9 @@ Scratch Submissions            (DRIVE_MASTER_FOLDER_ID)
  └─ student2@school.org/
 ```
 
-**`handleSaveToGoogleDrive`:**
+**`handleSaveToGoogleDrive` / `handleLoadFromGoogleDrive`:** the personal-Drive counterparts. Load opens a Picker over the user's Drive (folders navigable), downloads the picked file with `alt=media` and calls `vm.loadProject(buffer)`. It then remembers the file in `this.googleDriveFile` (`{id, name}`). Save prompts for a name, defaulting to the remembered file's name. If the entered name matches the remembered file, it overwrites that file with a multipart `PATCH` (falling back to a new file on a 404). Otherwise it uploads a new `<name>.sb3` to the root of My Drive with a `POST` and remembers the result. The remembered file is cleared on every `PROJECT_LOADED` from the VM (New, load from computer, Shared Drive), so it never applies to an unrelated project. These handlers reuse `getGoogleToken` and don't touch the master folder.
+
+**`handleSaveToSharedDrive`:**
 
 1. Gets a token, then reads the student's email from the userinfo endpoint.
 2. Searches the master folder for a subfolder named with that email. If none exists, it creates one.
@@ -129,7 +131,7 @@ Scratch Submissions            (DRIVE_MASTER_FOLDER_ID)
 4. Calls `vm.saveProjectSb3()` and uploads the result as `<name>.sb3` to the student's subfolder with a multipart POST (`uploadType=multipart`, `supportsAllDrives=true`).
 5. Shows a success or failure alert.
 
-**`handleLoadFromGoogleDrive`:**
+**`handleLoadFromSharedDrive`:**
 
 1. Gets a token, reads the email, and looks up the student's subfolder. It falls back to the master folder if none exists.
 2. Opens a Google Picker with two views:
