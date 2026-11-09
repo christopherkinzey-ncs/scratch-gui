@@ -32,6 +32,7 @@ import SettingsMenu from './settings-menu.jsx';
 import {openTipsLibrary, openDebugModal} from '../../reducers/modals';
 import {setPlayer} from '../../reducers/mode';
 import {setProjectTitle} from '../../reducers/project-title';
+import {setProjectUnchanged} from '../../reducers/project-changed';
 import {
     isTimeTravel220022BC,
     isTimeTravel1920,
@@ -410,6 +411,7 @@ class MenuBar extends React.Component {
                                     .then(res => res.arrayBuffer())
                                     .then(buffer => {
                                         this.props.vm.loadProject(buffer).then(() => {
+                                            this.props.onSetProjectUnchanged();
                                             alert('Project loaded successfully!');
                                         });
                                     })
@@ -507,6 +509,7 @@ class MenuBar extends React.Component {
                         })
                         .then(res => {
                             if (res && res.ok) {
+                                this.props.onSetProjectUnchanged();
                                 alert(`Project "${fileName}" saved successfully to your folder (${studentEmail})!`);
                             } else if (res) {
                                 alert('Error saving to Shared Drive. Make sure you have access to the class folder.');
@@ -554,6 +557,7 @@ class MenuBar extends React.Component {
                                     // Remember the file so a later save can overwrite it.
                                     this.googleDriveFile = {id: pickedFile.id, name: pickedFile.name};
                                     this.props.onSetProjectTitle(pickedFile.name.replace(/\.sb3$/i, ''));
+                                    this.props.onSetProjectUnchanged();
                                     alert('Project loaded successfully!');
                                 })
                                 .catch(err => {
@@ -622,6 +626,7 @@ class MenuBar extends React.Component {
                         return res.json().then(file => {
                             this.googleDriveFile = {id: file.id, name: targetName};
                             this.props.onSetProjectTitle(fileName);
+                            this.props.onSetProjectUnchanged();
                             alert(existingId && file.id === existingId ?
                                 `Project "${fileName}" updated in your Google Drive!` :
                                 `Project "${fileName}" saved to your Google Drive!`);
@@ -1264,6 +1269,7 @@ MenuBar.propTypes = {
     onRequestOpenAbout: PropTypes.func,
     onSeeCommunity: PropTypes.func,
     onSetProjectTitle: PropTypes.func,
+    onSetProjectUnchanged: PropTypes.func,
     onSetTimeTravelMode: PropTypes.func,
     onShare: PropTypes.func,
     onStartSelectingFileUpload: PropTypes.func,
@@ -1338,6 +1344,7 @@ const mapDispatchToProps = dispatch => ({
     onClickSaveAsCopy: () => dispatch(saveProjectAsCopy()),
     onSeeCommunity: () => dispatch(setPlayer(true)),
     onSetProjectTitle: title => dispatch(setProjectTitle(title)),
+    onSetProjectUnchanged: () => dispatch(setProjectUnchanged()),
     onSetTimeTravelMode: mode => dispatch(setTimeTravel(mode))
 });
 
