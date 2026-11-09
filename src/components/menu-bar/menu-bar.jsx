@@ -31,6 +31,7 @@ import SettingsMenu from './settings-menu.jsx';
 
 import {openTipsLibrary, openDebugModal} from '../../reducers/modals';
 import {setPlayer} from '../../reducers/mode';
+import {setProjectTitle} from '../../reducers/project-title';
 import {
     isTimeTravel220022BC,
     isTimeTravel1920,
@@ -552,6 +553,7 @@ class MenuBar extends React.Component {
                                 .then(() => {
                                     // Remember the file so a later save can overwrite it.
                                     this.googleDriveFile = {id: pickedFile.id, name: pickedFile.name};
+                                    this.props.onSetProjectTitle(pickedFile.name.replace(/\.sb3$/i, ''));
                                     alert('Project loaded successfully!');
                                 })
                                 .catch(err => {
@@ -619,6 +621,7 @@ class MenuBar extends React.Component {
                         }
                         return res.json().then(file => {
                             this.googleDriveFile = {id: file.id, name: targetName};
+                            this.props.onSetProjectTitle(fileName);
                             alert(existingId && file.id === existingId ?
                                 `Project "${fileName}" updated in your Google Drive!` :
                                 `Project "${fileName}" saved to your Google Drive!`);
@@ -1260,6 +1263,7 @@ MenuBar.propTypes = {
     onRequestCloseSettings: PropTypes.func,
     onRequestOpenAbout: PropTypes.func,
     onSeeCommunity: PropTypes.func,
+    onSetProjectTitle: PropTypes.func,
     onSetTimeTravelMode: PropTypes.func,
     onShare: PropTypes.func,
     onStartSelectingFileUpload: PropTypes.func,
@@ -1333,6 +1337,7 @@ const mapDispatchToProps = dispatch => ({
     onClickSave: () => dispatch(manualUpdateProject()),
     onClickSaveAsCopy: () => dispatch(saveProjectAsCopy()),
     onSeeCommunity: () => dispatch(setPlayer(true)),
+    onSetProjectTitle: title => dispatch(setProjectTitle(title)),
     onSetTimeTravelMode: mode => dispatch(setTimeTravel(mode))
 });
 
